@@ -2,6 +2,20 @@
 
 这是一个基于 Python BLESS 库实现的 BLE UART 服务器，用于在 Rock 5C 开发板上实现 Nordic UART Service (NUS)。
 
+## 功能演示
+
+### 1. 服务器启动
+![服务器启动](image.png)
+服务器成功启动，显示服务和特征 UUID
+
+### 2. 客户端连接
+![客户端连接](image%20copy.png)
+iPhone LightBlue 应用成功连接到服务器
+
+### 3. 数据交互
+![数据交互](image%20copy%202.png)
+实现与客户端的数据收发功能
+
 ## 功能特点
 
 - 实现标准的 Nordic UART Service (NUS)
