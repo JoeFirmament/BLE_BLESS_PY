@@ -23,6 +23,7 @@ wheels/
 # 虚拟环境
 venv/
 ENV/
+myenv/
 
 # 日志文件
 *.log
@@ -35,4 +36,29 @@ ENV/
 
 # 操作系统
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# C++
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.dll
+*.dylib
+*.a
+*.lib
+nus_simple
+
+# 大型依赖库
+bluez-dbus-cpp/
+sdbus-cpp/
+
+# 固件和驱动
+*.deb
+
+# 其他
+.cache/
+.pytest_cache/
+.coverage
+htmlcov/

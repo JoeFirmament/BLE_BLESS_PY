@@ -1,0 +1,45 @@
+CXX = g++
+CXXFLAGS = -std=c++17 -Wall -Wextra -g
+LDFLAGS = -lsdbus-c++ -pthread
+
+# 目标文件
+TARGET = nus_simple
+
+# 源文件
+SRCS = nus_simple.cpp
+
+# 包含路径 - 添加 example 目录以找到 SerialCharacteristic.h
+INCLUDES = -I./bluez-dbus-cpp/include -I./bluez-dbus-cpp
+
+# 库路径和库
+LIBS = -L./bluez-dbus-cpp/build -lbluez-dbus-cpp
+
+# 目标规则
+all: $(TARGET)
+
+$(TARGET): $(SRCS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^ $(LIBS) $(LDFLAGS)
+
+# 安装 D-Bus 配置文件（需要 root 权限）
+install-conf:
+	sudo cp org.example.ble_uart.conf /etc/dbus-1/system.d/
+	sudo systemctl reload dbus
+
+# 安装用户级别的 systemd 服务
+install-service:
+	mkdir -p ~/.config/systemd/user/
+	cp nus-simple.service ~/.config/systemd/user/
+	systemctl --user daemon-reload
+	@echo "服务已安装。使用以下命令启动服务："
+	@echo "systemctl --user start nus-simple.service"
+	@echo "使用以下命令设置开机自启动："
+	@echo "systemctl --user enable nus-simple.service"
+
+# 运行程序（使用 sudo 以获取足够的权限）
+run:
+	sudo LD_LIBRARY_PATH=./bluez-dbus-cpp/build ./$(TARGET)
+
+clean:
+	rm -f $(TARGET)
+
+.PHONY: all clean install-conf install-service run

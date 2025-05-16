@@ -1,0 +1,14 @@
+[Unit]
+Description=Nordic UART Service BLE Server
+After=bluetooth.service
+Requires=bluetooth.service
+
+[Service]
+Type=simple
+ExecStart=/home/radxa/bluetooth_toolkit/nus_simple
+Restart=on-failure
+RestartSec=5
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
+
+[Install]
+WantedBy=default.target
