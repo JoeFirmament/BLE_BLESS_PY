@@ -50,9 +50,9 @@ Thumbs.db
 *.lib
 nus_simple
 
-# 大型依赖库
-bluez-dbus-cpp/
-sdbus-cpp/
+# 大型依赖库的构建目录
+bluez-dbus-cpp/build/
+sdbus-cpp/build/
 
 # 固件和驱动
 *.deb

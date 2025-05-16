@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches:
+      - master
+      - release/v2.0
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        compiler: [g++, clang]
+        build: [shared-libsystemd, embedded-static-libsystemd]
+    steps:
+    - uses: actions/checkout@v4
+    - name: install-libsystemd-toolchain
+      if: matrix.build == 'embedded-static-libsystemd'
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y meson ninja-build libcap-dev libmount-dev m4 gperf
+    - name: install-libsystemd-dev
+      if: matrix.build == 'shared-libsystemd'
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y libsystemd-dev
+    - name: install-clang
+      if: matrix.compiler == 'clang'
+      run: |
+        sudo apt-get install -y clang libc++-dev
+        sudo update-alternatives --remove-all cc
+        sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang 10
+        sudo update-alternatives --remove-all c++
+        sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++ 10
+        # We need to use libc++ with Clang because there is a bug in libstdc++ chrono headers that Clang has issues with
+        echo "SDBUSCPP_EXTRA_CXX_FLAGS=-stdlib=libc++" >> $GITHUB_ENV
+# We don't install googletest but we let it be built within sdbus-c++ builds below, since it needs to be built against libc++ for Clang jobs to pass
+#    - name: install-googletest
+#      run: |
+#        sudo apt-get install -y libgmock-dev
+    - name: configure-debug-gcc11 # For gcc 11, turn off the annoying deprecated-copy warning
+      if: matrix.build == 'shared-libsystemd' && matrix.compiler == 'g++' && matrix.os == 'ubuntu-22.04'
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Wno-deprecated-copy -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0 ..
+    - name: configure-debug
+      if: matrix.build == 'shared-libsystemd' && (matrix.compiler != 'g++' || matrix.os != 'ubuntu-22.04')
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="-O0 -g -W -Wextra -Wall -Wnon-virtual-dtor -Werror $SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0 ..
+    - name: configure-release-with-embedded-libsystemd
+      if: matrix.build == 'embedded-static-libsystemd'
+      run: |
+        mkdir build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_CXX_FLAGS="$SDBUSCPP_EXTRA_CXX_FLAGS" -DCMAKE_VERBOSE_MAKEFILE=ON -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_BUILD_LIBSYSTEMD=ON -DSDBUSCPP_LIBSYSTEMD_VERSION=252 -DSDBUSCPP_GOOGLETEST_VERSION=1.14.0 ..
+    - name: make
+      run: |
+        cd build
+        cmake --build . -j4
+    - name: verify
+      run: |
+        cd build
+        sudo cmake --build . --target install
+        ctest --output-on-failure
+    - name: pack
+      if: matrix.build == 'shared-libsystemd'
+      run: |
+        cd build
+        cpack -G DEB
+    - name: 'Upload Artifact'
+      if: matrix.build == 'shared-libsystemd' && matrix.compiler == 'g++'
+      uses: actions/upload-artifact@v4
+      with:
+        name: "debian-packages-${{ matrix.os }}-${{ matrix.compiler }}"
+        path: |
+          build/sdbus-c++*.deb
+          build/sdbus-c++*.ddeb
+        retention-days: 10
+  freebsd-build:
+    name: build (freebsd, clang/libc++, basu)
+    runs-on: ubuntu-22.04 # until https://github.com/actions/runner/issues/385
+    steps:
+    - uses: actions/checkout@v4
+    - name: Test in FreeBSD VM
+      uses: vmactions/freebsd-vm@v1
+      with:
+        copyback: false
+        usesh: true
+        prepare: |
+          pkg install -y cmake ninja pkgconf basu expat googletest
+        run: |
+          cmake -B _build -G Ninja -DSDBUSCPP_INSTALL=ON -DSDBUSCPP_BUILD_CODEGEN=ON -DSDBUSCPP_BUILD_TESTS=ON -DSDBUSCPP_BUILD_PERF_TESTS=ON -DSDBUSCPP_BUILD_STRESS_TESTS=ON
+          cmake --build _build
+          cmake --install _build
+          pkg install -y dbus
+          service dbus onestart
+          ctest --output-on-failure --test-dir _build
