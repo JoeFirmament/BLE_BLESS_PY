@@ -1,6 +1,6 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -g
-LDFLAGS = -lsdbus-c++ -pthread
+LDFLAGS = -pthread
 
 # 目标文件
 TARGET = nus_simple
@@ -8,17 +8,23 @@ TARGET = nus_simple
 # 源文件
 SRCS = nus_simple.cpp
 
-# 包含路径 - 添加 example 目录以找到 SerialCharacteristic.h
+# 包含路径
 INCLUDES = -I./bluez-dbus-cpp/include -I./bluez-dbus-cpp
 
 # 库路径和库
-LIBS = -L./bluez-dbus-cpp/build -lbluez-dbus-cpp
+LIBS = -L./bluez-dbus-cpp/build -lbluez-dbus-cpp -lsdbus-c++ -lsystemd -lexpat -lglib-2.0 -ldbus-1 -lpcre2-8 -lffi -lmount -lcap -lrt -lresolv -llzma -lz -lselinux
 
 # 目标规则
-all: $(TARGET)
+all: build-static-lib $(TARGET)
 
 $(TARGET): $(SRCS)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^ $(LIBS) $(LDFLAGS)
+
+# 首先编译静态库
+build-static-lib:
+	cd bluez-dbus-cpp && mkdir -p build && cd build && \
+	cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF && \
+	make -j4
 
 # 安装 D-Bus 配置文件（需要 root 权限）
 install-conf:
@@ -37,9 +43,10 @@ install-service:
 
 # 运行程序（使用 sudo 以获取足够的权限）
 run:
-	sudo LD_LIBRARY_PATH=./bluez-dbus-cpp/build ./$(TARGET)
+	sudo ./$(TARGET)
 
 clean:
 	rm -f $(TARGET)
+	cd bluez-dbus-cpp/build && make clean
 
-.PHONY: all clean install-conf install-service run
+.PHONY: all clean install-conf install-service run build-static-lib

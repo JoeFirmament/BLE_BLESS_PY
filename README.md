@@ -431,40 +431,35 @@ python3 bless_uart_server.py
      Environment="PATH=/opt/ble_uart:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
      ```
 
-## 故障排除
+## 常见问题解决
 
-1. 确保蓝牙控制器正常工作：
+### 1. LightBlue 应用请求配对
+**问题**：使用 LightBlue 连接设备时持续请求配对。
+
+**解决方案**：
+- 程序已经通过设置 `adapter1.Pairable(false)` 禁用了配对功能
+- 无需在 LightBlue 中进行配对操作，可直接连接使用
+
+### 2. 找不到动态库
+**问题**：运行时报错 "找不到 libbluez-dbus-cpp.so.0"
+
+**解决方案**：
+- 使用 LD_LIBRARY_PATH 指定库文件路径：
 ```bash
-hciconfig
+LD_LIBRARY_PATH=./bluez-dbus-cpp/build:$LD_LIBRARY_PATH ./nus_simple
 ```
 
-2. 检查 D-Bus 配置：
-```bash
-ls -la /etc/dbus-1/system.d/org.example.ble_uart.conf
-```
+## 使用说明
+1. 编译并运行程序
+2. 打开 LightBlue 应用
+3. 扫描并连接设备（设备名为 "Q_RK3588_BLE_DEVICE"）
+4. 连接后可以开始收发数据
 
-3. 检查 BlueZ 服务状态：
-```bash
-systemctl status bluetooth
-```
+## 许可证
+[许可证信息]
 
-4. 检查库路径：
-```bash
-ldd /opt/ble_uart/nus_simple
-```
-
-5. 检查环境变量：
-```bash
-echo $LD_LIBRARY_PATH
-echo $DBUS_SESSION_BUS_ADDRESS
-```
-
-6. 常见问题：
-   - "No object received" 错误：检查 D-Bus 配置和权限
-   - 广告注册失败：简化广告参数，检查 BlueZ 支持的功能
-   - 连接问题：确保设备可发现，检查广告参数
-   - "找不到共享库" 错误：检查 LD_LIBRARY_PATH 环境变量
-   - 服务启动失败：检查 systemd 服务日志 `journalctl --user -u nus-simple.service`
+## 贡献
+欢迎提交问题报告和改进建议。
 
 ## 开发日志
 

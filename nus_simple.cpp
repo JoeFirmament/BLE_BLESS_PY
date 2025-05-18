@@ -15,10 +15,10 @@ using namespace org::bluez;
 constexpr const char* BLUEZ_SERVICE = "org.bluez";
 constexpr const char* DEVICE0 = "/org/bluez/hci0";
 
-// Nordic UART Service UUIDs
-constexpr const char* NUS_SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
-constexpr const char* NUS_RX_CHAR_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"; // 写入特性
-constexpr const char* NUS_TX_CHAR_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"; // 通知特性
+// 自定义 BLE 服务 UUIDs
+constexpr const char* NUS_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
+constexpr const char* NUS_RX_CHAR_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb"; // 接收特征值（写入）
+constexpr const char* NUS_TX_CHAR_UUID = "0000ffe2-0000-1000-8000-00805f9b34fb"; // 发送特征值（通知）
 
 static int sig = 0;
 static void sig_callback(int signum)
@@ -36,7 +36,7 @@ int main(int, char**)
     constexpr const char* APP_PATH = "/org/bluez/example";
     constexpr const char* ADV_PATH = "/org/bluez/example/advertisement1";
 
-    constexpr const char* NAME = "RK3588_BLE_UART";
+    constexpr const char* NAME = "RK3588_BLE_DEVICE";
 
     std::cout << "应用路径: " << APP_PATH << std::endl;
     std::cout << "广告路径: " << ADV_PATH << std::endl;
@@ -53,7 +53,8 @@ int main(int, char**)
 
         adapter1.Powered( true );
         adapter1.Discoverable( true );
-        adapter1.Pairable( true );
+        //无需验证和加密
+        adapter1.Pairable( false ); 
         adapter1.Alias( NAME );
 
         std::cout << "找到适配器 '" << DEVICE0 << "'" << std::endl;

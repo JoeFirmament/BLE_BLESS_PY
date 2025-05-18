@@ -32,6 +32,11 @@ include(GNUInstallDirs)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Disable examples
+set(BUILD_EXAMPLE OFF CACHE BOOL "Build examples" FORCE)
+set(BUILD_EXAMPLE_ELL OFF CACHE BOOL "Build ELL examples" FORCE)
 
 #-------------------------------
 # SOURCE FILES CONFIGURATION
@@ -74,20 +79,13 @@ set( BLUEZ_SOURCES
 	"${BLUEZ_SOURCE_DIR}/GattDescriptor1.cpp"
 	"${BLUEZ_SOURCE_DIR}/Util.cpp" )
 
-
-add_library( bluez-dbus-cpp SHARED
+add_library( bluez-dbus-cpp STATIC
 	${BLUEZ_SOURCES}
 	${BLUEZ_HEADERS} )
 
 target_include_directories( bluez-dbus-cpp PUBLIC 	
 							$<BUILD_INTERFACE:${BLUEZ_HEADER_DIR}>
 							$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}> )
-
-option(BUILD_SHARED_LIBS "Build shared libraries (.so) instead of static ones (.a)" ON)
-
-if(DEFINED BUILD_SHARED_LIBS)
-    set_target_properties(bluez-dbus-cpp PROPERTIES POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS})
-endif()
 
 set_target_properties(bluez-dbus-cpp
 					PROPERTIES PUBLIC_HEADER "${BLUEZ_HEADERS}"
@@ -107,6 +105,7 @@ install(TARGETS bluez-dbus-cpp
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT libraries
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT libraries
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT static_libraries
+		PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${BLUEZ_HEADER_PREFIX}
 		COMPONENT dev)
 	
 # Manually install headers to preserve folder structure	
@@ -125,17 +124,6 @@ install( DIRECTORY "${BLUEZ_HEADER_DIR}/${BLUEZ_HEADER_PREFIX}/"
 
 # install docs
 install(FILES README.md LICENSE_1_0.txt DESTINATION ${CMAKE_INSTALL_DOCDIR})
-
-#-------------------------------
-# EXAMPLES
-#-------------------------------
-if ( BUILD_EXAMPLE )
-	add_subdirectory( example )
-endif()
-
-if ( BUILD_EXAMPLE_ELL )
-	add_subdirectory( example-ell-sockets )
-endif()
 
 #----------------------------------
 # CMAKE CONFIG & PACKAGE CONFIG
